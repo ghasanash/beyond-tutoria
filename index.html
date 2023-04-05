@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Arcade Game</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #222;
+    }
+
+    canvas {
+      border: 1px solid #fff;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="480" height="320"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const player = {
+      x: canvas.width / 2 - 25,
+      y: canvas.height - 30,
+      width: 50,
+      height: 10,
+      speed: 4
+    };
+
+    const ball = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 5,
+      dx: 1.6, // 20% slower than the original speed of 2
+      dy: -1.6, // 20% slower than the original speed of -2
+    };
+
+    let score = 0;
+    let startTime = null;
+    let pausedTime = 0;
+    let pauseStartTime = null;
+    let displayedScore = 0;
+    let paused = false;
+
+    function gameLoop() {
+      if (startTime === null) {
+        startTime = new Date().getTime();
+      }
+      if (!paused) {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Update player and ball
+      updatePlayer();
+      updateBall();
+
+      // Draw player and ball
+      drawPlayer();
+      drawBall();
+      } else {
+      drawPause(); // Add this line to draw the pause symbol
+    }
+      // Request the next frame
+      requestAnimationFrame(gameLoop);
+      drawScore(); // Add this line
+    }
+
+    function togglePause() {
+      if (paused) {
+      // Resume the game
+      const pauseEndTime = new Date().getTime();
+      pausedTime += pauseEndTime - pauseStartTime; // Update the total paused time
+      pauseStartTime = null; // Reset the pause start time
+      } else {
+      // Pause the game
+      pauseStartTime = new Date().getTime(); // Store the pause start time
+      const currentTime = new Date().getTime();
+      const elapsedTime = currentTime - startTime - pausedTime;
+      displayedScore = Math.floor(elapsedTime / 1000); // Update the displayedScore
+      }
+
+      paused = !paused;
+    }
+
+
+    function updatePlayer() {
+      // Move the player based on keyboard input (left and right arrow keys)
+      if (leftPressed && player.x > 0) {
+        player.x -= player.speed;
+      } else if (rightPressed && player.x + player.width < canvas.width) {
+        player.x += player.speed;
+      }
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = 'white';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function updateBall() {
+      // Move the ball
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Check for collisions with the canvas edges
+      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.dx = -ball.dx;
+      }
+      if (ball.y - ball.radius < 0) {
+        ball.dy = -ball.dy;
+      } else if (ball.y + ball.radius > canvas.height) {
+        // Game over, reset the ball
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dy = -ball.dy;
+        score = 0; // Add this line to reset the score
+        startTime = new Date().getTime(); // Reset the startTime
+      }
+
+      // Check for collisions with the player
+      if (ball.y + ball.radius > player.y &&
+          ball.x > player.x &&
+          ball.x < player.x + player.width) {
+            if (ball.dy < 0) {
+            score++; // Increment the score only if the ball is moving upwards
+        }
+        ball.dy = -ball.dy;
+      }
+    }
+
+    function drawScore() {
+    if (!paused) {
+      const currentTime = new Date().getTime();
+      const elapsedTime = currentTime - startTime - pausedTime; // Subtract the paused time
+      score = Math.floor(elapsedTime / 100); // Calculate the score as seconds elapsed
+    }
+      ctx.font = '16px Arial';
+      ctx.fillStyle = 'white';
+      ctx.fillText('Score: ' + score, 8, 20);
+    }
+
+    function drawPause() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = '48px Arial';
+      ctx.fillStyle = 'white';
+      ctx.fillText('||', canvas.width / 2 - 24, canvas.height / 2 + 12);
+    }
+
+
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'purple'; // Change this from 'white' to 'purple'
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Add event listeners for keydown and keyup
+    let leftPressed = false;
+    let rightPressed = false;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        leftPressed = true;
+      } else if (e.key === 'ArrowRight') {
+        rightPressed = true
+    }
+      if (e.key === 'p' || e.key === 'P') {
+        togglePause();
+    }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') {
+        leftPressed = false;
+      } else if (e.key === 'ArrowRight') {
+        rightPressed = false;
+      }
+    });
+
+    gameLoop();
+  </script>
+</body>
+</html>
